@@ -78,6 +78,15 @@ export function sendError(res: VercelResponse, err: unknown) {
     res.status(err.status).json({ error: err.message });
     return;
   }
+  // Zod validation errors: surface the first issue as a clear string.
+  if (err && typeof err === "object" && "issues" in err && Array.isArray((err as { issues: unknown[] }).issues)) {
+    const issues = (err as { issues: Array<{ path: (string | number)[]; message: string }> }).issues;
+    const first = issues[0];
+    const path = first?.path?.join(".") ?? "";
+    const message = first ? (path ? `${path}: ${first.message}` : first.message) : "Validation failed";
+    res.status(400).json({ error: message });
+    return;
+  }
   console.error(err);
   res.status(500).json({ error: "Internal server error" });
 }

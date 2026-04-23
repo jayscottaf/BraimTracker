@@ -13,7 +13,10 @@ const markPaidSchema = z.object({
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const raw = req.query.path;
-  const segments = Array.isArray(raw) ? raw : raw ? [String(raw)] : [];
+  const rawSegments = Array.isArray(raw) ? raw : raw ? [String(raw)] : [];
+  // vercel.json rewrites /api/payments -> /api/payments/_root so the
+  // catch-all function matches; strip the sentinel back out here.
+  const segments = rawSegments[0] === "_root" ? rawSegments.slice(1) : rawSegments;
   try {
     if (segments.length === 0) {
       await methodRouter(req, res, {

@@ -38,7 +38,13 @@ export async function api<T = unknown>(
     // non-JSON response
   }
   if (!res.ok) {
-    const message = data?.error ?? `Request failed (${res.status})`;
+    const raw = data?.error;
+    const message =
+      typeof raw === "string"
+        ? raw
+        : raw && typeof raw === "object" && typeof (raw as { message?: unknown }).message === "string"
+          ? (raw as { message: string }).message
+          : `Request failed (${res.status})`;
     if (res.status === 401) clearToken();
     throw new ApiError(res.status, message);
   }
