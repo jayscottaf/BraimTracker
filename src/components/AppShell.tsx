@@ -24,12 +24,24 @@ export default function AppShell() {
         <div className="mx-auto flex max-w-4xl items-center justify-between py-3 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
-              <span className="text-sm font-bold">BT</span>
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.25"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5"
+                aria-hidden="true"
+              >
+                <path d="M3 10.75 12 3l9 7.75" />
+                <path d="M5 9.5V20a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V9.5" />
+              </svg>
             </div>
             <div>
               <div className="text-sm font-semibold">BraimTracker</div>
               <div className="text-xs text-slate-500">
-                {user?.name} · {user?.role === "OWNER" ? "Owner" : "Worker"}
+                {user?.role === "OWNER" ? "Owner" : `${user?.name} · Worker`}
               </div>
             </div>
           </div>
