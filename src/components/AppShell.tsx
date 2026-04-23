@@ -20,8 +20,8 @@ export default function AppShell() {
 
   return (
     <div className="flex min-h-full flex-col">
-      <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur pt-[env(safe-area-inset-top)]">
-        <div className="mx-auto flex max-w-4xl items-center justify-between py-3 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
+      <header className="pt-safe sticky top-0 z-20 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="px-safe mx-auto flex max-w-4xl items-center justify-between py-3">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-brand-600 text-white">
               <svg
@@ -54,11 +54,11 @@ export default function AppShell() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl flex-1 py-5 pb-24 md:pb-6 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))]">
+      <main className="px-safe mx-auto w-full max-w-4xl flex-1 py-5 pb-24 md:pb-6">
         <Outlet />
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] md:hidden">
+      <nav className="pb-safe fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white md:hidden">
         <div className="mx-auto grid w-full max-w-4xl" style={{ gridTemplateColumns: `repeat(${nav.length}, 1fr)` }}>
           {nav.map((n) => (
             <NavLink
