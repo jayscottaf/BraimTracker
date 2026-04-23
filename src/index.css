@@ -8,6 +8,12 @@ body,
   height: 100%;
 }
 
+html,
+body {
+  overscroll-behavior: none;
+  overflow-x: hidden;
+}
+
 body {
   -webkit-tap-highlight-color: transparent;
 }

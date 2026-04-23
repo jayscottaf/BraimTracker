@@ -22,8 +22,8 @@ export default function Dashboard() {
   const isOwner = user?.role === "OWNER";
 
   return (
-    <div className="space-y-4">
-      <section className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="space-y-5">
+      <section className="grid grid-cols-2 gap-3.5 sm:grid-cols-4">
         <Stat label="Active" value={data.counts.active} tone="blue" />
         <Stat label="Awaiting review" value={data.counts.awaiting} tone="purple" />
         <Stat label="This week" value={hours(data.weekHours)} tone="slate" />
