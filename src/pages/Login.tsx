@@ -32,67 +32,76 @@ export default function Login() {
   return (
     <div className="flex min-h-full items-center justify-center bg-gradient-to-b from-brand-50 to-slate-100 p-4">
       <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-600 text-white shadow-lg">
-            <span className="text-xl font-bold">BT</span>
-          </div>
-          <h1 className="text-2xl font-bold">BraimTracker</h1>
-          <p className="text-sm text-slate-500">Sign in to manage yard work</p>
-        </div>
-
-        <Card>
-          <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
-            <button
-              onClick={() => setMode("WORKER")}
-              className={`rounded-lg py-2 text-sm font-medium ${
-                mode === "WORKER" ? "bg-white shadow-sm" : "text-slate-500"
-              }`}
-            >
-              I'm a worker
-            </button>
-            <button
-              onClick={() => setMode("OWNER")}
-              className={`rounded-lg py-2 text-sm font-medium ${
-                mode === "OWNER" ? "bg-white shadow-sm" : "text-slate-500"
-              }`}
-            >
-              I'm the owner
-            </button>
+        <Card className="overflow-hidden p-0 shadow-lg">
+          <div className="relative h-48 w-full bg-brand-100 sm:h-56">
+            <img
+              src="/house.jpg"
+              alt="Home"
+              className="h-full w-full object-cover"
+              loading="eager"
+              decoding="async"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+            <div className="absolute inset-x-0 bottom-0 p-5 text-white">
+              <h1 className="text-2xl font-bold leading-tight drop-shadow-sm">BraimTracker</h1>
+              <p className="text-sm text-white/85">Sign in to manage yard work</p>
+            </div>
           </div>
 
-          <form onSubmit={submit} className="space-y-4">
-            {mode === "WORKER" ? (
-              <Field label="Login code" hint="4-digit code from the owner">
-                <input
-                  className={`${inputClass} text-center text-xl tracking-[0.5em]`}
-                  inputMode="numeric"
-                  pattern="\d*"
-                  maxLength={6}
-                  autoFocus
-                  value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                  placeholder="••••"
-                />
-              </Field>
-            ) : (
-              <Field label="Owner password">
-                <input
-                  className={inputClass}
-                  type="password"
-                  autoFocus
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
-                />
-              </Field>
-            )}
+          <div className="p-5">
+            <div className="mb-4 grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+              <button
+                onClick={() => setMode("WORKER")}
+                className={`rounded-lg py-2 text-sm font-medium ${
+                  mode === "WORKER" ? "bg-white shadow-sm" : "text-slate-500"
+                }`}
+              >
+                I'm a worker
+              </button>
+              <button
+                onClick={() => setMode("OWNER")}
+                className={`rounded-lg py-2 text-sm font-medium ${
+                  mode === "OWNER" ? "bg-white shadow-sm" : "text-slate-500"
+                }`}
+              >
+                I'm the owner
+              </button>
+            </div>
 
-            {error && <div className="rounded-md bg-rose-50 p-2 text-sm text-rose-700">{error}</div>}
+            <form onSubmit={submit} className="space-y-4">
+              {mode === "WORKER" ? (
+                <Field label="Login code" hint="4-digit code from the owner">
+                  <input
+                    className={`${inputClass} text-center text-xl tracking-[0.5em]`}
+                    inputMode="numeric"
+                    pattern="\d*"
+                    maxLength={6}
+                    autoFocus
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="••••"
+                  />
+                </Field>
+              ) : (
+                <Field label="Owner password">
+                  <input
+                    className={inputClass}
+                    type="password"
+                    autoFocus
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Password"
+                  />
+                </Field>
+              )}
 
-            <Button type="submit" block size="lg" disabled={busy}>
-              {busy ? <Spinner /> : "Sign in"}
-            </Button>
-          </form>
+              {error && <div className="rounded-md bg-rose-50 p-2 text-sm text-rose-700">{error}</div>}
+
+              <Button type="submit" block size="lg" disabled={busy}>
+                {busy ? <Spinner /> : "Sign in"}
+              </Button>
+            </form>
+          </div>
         </Card>
 
         <p className="mt-4 text-center text-xs text-slate-400">
