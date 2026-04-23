@@ -1,0 +1,180 @@
+// BraimTracker Prisma schema
+// Single OWNER + multiple WORKERs. Each Job lives in a Zone, with photos (instruction/before/after),
+// an optional task checklist, time entries, and one payment.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  OWNER
+  WORKER
+}
+
+enum JobStatus {
+  DRAFT
+  ASSIGNED
+  IN_PROGRESS
+  AWAITING_REVIEW
+  APPROVED
+  PAID
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum TaskType {
+  MULCH
+  EDGING
+  CLEANUP
+  TRIMMING
+  PRUNING
+  OTHER
+}
+
+enum PhotoType {
+  INSTRUCTION
+  BEFORE
+  AFTER
+}
+
+enum PriceMode {
+  HOURLY
+  FLAT
+}
+
+model User {
+  id             String         @id @default(cuid())
+  role           Role
+  name           String
+  email          String?        @unique
+  loginCode      String?        @unique
+  createdAt      DateTime       @default(now())
+
+  workerProfile  WorkerProfile?
+  assignedJobs   Job[]          @relation("AssignedWorker")
+  timeEntries    TimeEntry[]
+  uploadedPhotos JobPhoto[]
+  activity       ActivityLog[]
+}
+
+model WorkerProfile {
+  id         String  @id @default(cuid())
+  userId     String  @unique
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hourlyRate Decimal @default(20.00) @db.Decimal(8, 2)
+  phone      String?
+  active     Boolean @default(true)
+}
+
+model Zone {
+  id             String   @id @default(cuid())
+  name           String
+  description    String?
+  priority       Priority @default(NORMAL)
+  referencePhoto String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  jobs           Job[]
+}
+
+model Job {
+  id               String     @id @default(cuid())
+  title            String
+  description      String?
+  zoneId           String
+  zone             Zone       @relation(fields: [zoneId], references: [id])
+  taskType         TaskType   @default(OTHER)
+  instructions     String?
+  priority         Priority   @default(NORMAL)
+  status           JobStatus  @default(DRAFT)
+  assignedWorkerId String?
+  assignedWorker   User?      @relation("AssignedWorker", fields: [assignedWorkerId], references: [id])
+  targetDate       DateTime?
+  estimatedHours   Decimal?   @db.Decimal(5, 2)
+  actualHours      Decimal?   @db.Decimal(5, 2)
+  priceMode        PriceMode  @default(HOURLY)
+  hourlyRate       Decimal    @default(20.00) @db.Decimal(8, 2)
+  flatRate         Decimal?   @db.Decimal(10, 2)
+  totalOwed        Decimal?   @db.Decimal(10, 2)
+  ownerNotes       String?
+  workerNotes      String?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  photos      JobPhoto[]
+  tasks       JobTask[]
+  timeEntries TimeEntry[]
+  payment     Payment?
+  activity    ActivityLog[]
+}
+
+model JobTask {
+  id       String    @id @default(cuid())
+  jobId    String
+  job      Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  label    String
+  done     Boolean   @default(false)
+  doneAt   DateTime?
+  doneById String?
+  order    Int       @default(0)
+}
+
+model JobPhoto {
+  id           String    @id @default(cuid())
+  jobId        String
+  job          Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  type         PhotoType
+  url          String
+  pathname     String
+  caption      String?
+  uploadedById String
+  uploadedBy   User      @relation(fields: [uploadedById], references: [id])
+  createdAt    DateTime  @default(now())
+}
+
+model TimeEntry {
+  id              String    @id @default(cuid())
+  jobId           String
+  job             Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  workerId        String
+  worker          User      @relation(fields: [workerId], references: [id])
+  startAt         DateTime
+  endAt           DateTime?
+  durationMinutes Int?
+  manualEntry     Boolean   @default(false)
+  notes           String?
+}
+
+model Payment {
+  id        String    @id @default(cuid())
+  jobId     String    @unique
+  job       Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  amount    Decimal   @db.Decimal(10, 2)
+  paid      Boolean   @default(false)
+  paidAt    DateTime?
+  method    String?
+  notes     String?
+  createdAt DateTime  @default(now())
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  jobId     String?
+  job       Job?     @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  actorId   String
+  actor     User     @relation(fields: [actorId], references: [id])
+  action    String
+  meta      Json?
+  createdAt DateTime @default(now())
+}
