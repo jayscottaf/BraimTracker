@@ -20,78 +20,104 @@ import { assert, methodRouter, parseBody } from "../_lib/http.js";
  * Authorization headers through the @vercel/blob/client upload helper).
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const raw = req.query.path;
-  const segments = Array.isArray(raw) ? raw : raw ? [String(raw)] : [];
+  // Parse segments from req.url directly — see workers/[[...id]].ts for why.
+  const urlPath = (req.url || "").split("?")[0];
+  const tail = urlPath.replace(/^\/api\/photos\/?/, "").replace(/\/$/, "");
+  const segments = tail ? tail.split("/") : [];
   try {
     if (segments.length === 1 && segments[0] === "upload") {
       await methodRouter(req, res, {
         POST: async () => {
+          // Fail fast and loud if the Blob integration isn't wired up.
+          // Without this, @vercel/blob's handleUpload throws a generic
+          // "No token found" deep in its stack which sendError reduces to
+          // "Internal server error", which the client library then reports
+          // as the opaque "Failed to retrieve the client token".
+          const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+          if (!blobToken) {
+            console.error("[photos/upload] BLOB_READ_WRITE_TOKEN env var is not set in this deployment");
+            throw new HttpError(
+              500,
+              "Vercel Blob storage is not configured. Add a Blob store under the Vercel project's Storage tab and redeploy.",
+            );
+          }
+
           const body = parseBody<HandleUploadBody>(req);
 
-          const jsonResponse = await handleUpload({
-            body,
-            request: req as unknown as Request,
-            onBeforeGenerateToken: async (_pathname, clientPayload) => {
-              const parsed = clientPayload ? JSON.parse(clientPayload) : {};
-              const jobId = String(parsed.jobId ?? "");
-              const photoType = String(parsed.type ?? "");
-              const token = String(parsed.token ?? "");
+          let jsonResponse;
+          try {
+            jsonResponse = await handleUpload({
+              token: blobToken,
+              body,
+              request: req as unknown as Request,
+              onBeforeGenerateToken: async (_pathname, clientPayload) => {
+                const parsed = clientPayload ? JSON.parse(clientPayload) : {};
+                const jobId = String(parsed.jobId ?? "");
+                const photoType = String(parsed.type ?? "");
+                const token = String(parsed.token ?? "");
 
-              if (!token) throw new HttpError(401, "Missing auth token");
-              let userId: string;
-              let role: string;
-              try {
-                const payload = verifyToken(token);
-                userId = payload.sub;
-                role = payload.role;
-              } catch {
-                throw new HttpError(401, "Invalid auth token");
-              }
+                if (!token) throw new HttpError(401, "Missing auth token");
+                let userId: string;
+                let role: string;
+                try {
+                  const payload = verifyToken(token);
+                  userId = payload.sub;
+                  role = payload.role;
+                } catch {
+                  throw new HttpError(401, "Invalid auth token");
+                }
 
-              if (!jobId || !["INSTRUCTION", "BEFORE", "AFTER"].includes(photoType)) {
-                throw new HttpError(400, "Invalid upload metadata");
-              }
+                if (!jobId || !["INSTRUCTION", "BEFORE", "AFTER"].includes(photoType)) {
+                  throw new HttpError(400, "Invalid upload metadata");
+                }
 
-              const job = await prisma.job.findUnique({ where: { id: jobId } });
-              if (!job) throw new HttpError(404, "Job not found");
+                const job = await prisma.job.findUnique({ where: { id: jobId } });
+                if (!job) throw new HttpError(404, "Job not found");
 
-              if (role === "WORKER") {
-                if (job.assignedWorkerId !== userId) throw new HttpError(403, "Not your job");
-                if (photoType === "INSTRUCTION") throw new HttpError(403, "Workers cannot upload instruction photos");
-              }
+                if (role === "WORKER") {
+                  if (job.assignedWorkerId !== userId) throw new HttpError(403, "Not your job");
+                  if (photoType === "INSTRUCTION") throw new HttpError(403, "Workers cannot upload instruction photos");
+                }
 
-              return {
-                allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/heic"],
-                maximumSizeInBytes: 15 * 1024 * 1024,
-                tokenPayload: JSON.stringify({
-                  jobId,
-                  photoType,
-                  uploadedById: userId,
-                }),
-                addRandomSuffix: true,
-              };
-            },
-            onUploadCompleted: async ({ blob, tokenPayload }) => {
-              const { jobId, photoType, uploadedById } = JSON.parse(tokenPayload ?? "{}");
-              await prisma.jobPhoto.create({
-                data: {
-                  jobId,
-                  type: photoType,
-                  url: blob.url,
-                  pathname: blob.pathname,
-                  uploadedById,
-                },
-              });
-              await prisma.activityLog.create({
-                data: {
-                  jobId,
-                  actorId: uploadedById,
-                  action: "PHOTO_UPLOADED",
-                  meta: { type: photoType, url: blob.url },
-                },
-              });
-            },
-          });
+                return {
+                  allowedContentTypes: ["image/jpeg", "image/png", "image/webp", "image/heic"],
+                  maximumSizeInBytes: 15 * 1024 * 1024,
+                  tokenPayload: JSON.stringify({
+                    jobId,
+                    photoType,
+                    uploadedById: userId,
+                  }),
+                  addRandomSuffix: true,
+                };
+              },
+              onUploadCompleted: async ({ blob, tokenPayload }) => {
+                const { jobId, photoType, uploadedById } = JSON.parse(tokenPayload ?? "{}");
+                await prisma.jobPhoto.create({
+                  data: {
+                    jobId,
+                    type: photoType,
+                    url: blob.url,
+                    pathname: blob.pathname,
+                    uploadedById,
+                  },
+                });
+                await prisma.activityLog.create({
+                  data: {
+                    jobId,
+                    actorId: uploadedById,
+                    action: "PHOTO_UPLOADED",
+                    meta: { type: photoType, url: blob.url },
+                  },
+                });
+              },
+            });
+          } catch (uploadErr) {
+            // Surface the real upload error in Vercel logs — without this,
+            // sendError just returns the generic "Internal server error" and
+            // we have no idea why handleUpload failed.
+            console.error("[photos/upload] handleUpload threw:", uploadErr);
+            throw uploadErr;
+          }
 
           return res.status(200).json(jsonResponse);
         },
