@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { del, get, patch, post } from "../lib/api";
+import { Link } from "react-router-dom";
+import { get, post } from "../lib/api";
 import { Button, Card, EmptyState, Field, inputClass } from "../components/ui";
 import { currency } from "../lib/format";
 import type { Worker } from "../types";
@@ -34,30 +35,6 @@ export default function Workers() {
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to add worker");
-    }
-  }
-
-  async function toggleActive(w: Worker) {
-    await patch(`/api/workers/${w.id}`, { active: !(w.workerProfile?.active ?? true) });
-    await refresh();
-  }
-
-  async function updateRate(w: Worker) {
-    const raw = prompt(`New hourly rate for ${w.name}?`, String(w.workerProfile?.hourlyRate ?? 20));
-    if (!raw) return;
-    const rate = Number(raw);
-    if (Number.isNaN(rate)) return;
-    await patch(`/api/workers/${w.id}`, { hourlyRate: rate });
-    await refresh();
-  }
-
-  async function remove(w: Worker) {
-    if (!confirm(`Delete ${w.name}?`)) return;
-    try {
-      await del(`/api/workers/${w.id}`);
-      await refresh();
-    } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed");
     }
   }
 
@@ -113,32 +90,33 @@ export default function Workers() {
         <EmptyState title="No workers yet" description="Add a worker with a 4-digit login code so they can log in and receive jobs." />
       ) : (
         <div className="space-y-2">
-          {workers.map((w) => (
-            <Card key={w.id} className="flex items-center justify-between gap-3">
-              <div>
-                <div className="font-semibold">{w.name}</div>
-                <div className="text-xs text-slate-500">
-                  Code <span className="font-mono">{w.loginCode}</span> ·{" "}
-                  {currency(w.workerProfile?.hourlyRate)}/hr ·{" "}
-                  {w._count?.assignedJobs ?? 0} job{(w._count?.assignedJobs ?? 0) === 1 ? "" : "s"}
-                  {w.workerProfile?.active === false && (
-                    <span className="ml-2 rounded bg-slate-200 px-1.5 py-0.5 text-slate-600">inactive</span>
-                  )}
+          {workers.map((w) => {
+            const jobCount = w._count?.assignedJobs ?? 0;
+            return (
+              <Link
+                key={w.id}
+                to={`/workers/${w.id}`}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm transition hover:shadow"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{w.name}</span>
+                    {w.workerProfile?.active === false && (
+                      <span className="rounded bg-slate-200 px-1.5 py-0.5 text-xs text-slate-700">
+                        Paused
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    Code <span className="font-mono">{w.loginCode}</span> ·{" "}
+                    {currency(w.workerProfile?.hourlyRate)}/hr · {jobCount} job
+                    {jobCount === 1 ? "" : "s"}
+                  </div>
                 </div>
-              </div>
-              <div className="flex gap-1">
-                <Button size="sm" variant="secondary" onClick={() => updateRate(w)}>
-                  Rate
-                </Button>
-                <Button size="sm" variant="secondary" onClick={() => toggleActive(w)}>
-                  {w.workerProfile?.active === false ? "Activate" : "Pause"}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => remove(w)}>
-                  ✕
-                </Button>
-              </div>
-            </Card>
-          ))}
+                <span className="text-xl text-slate-300">›</span>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

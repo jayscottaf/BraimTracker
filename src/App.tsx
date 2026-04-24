@@ -8,6 +8,7 @@ import JobNew from "./pages/JobNew";
 import ZonesList from "./pages/ZonesList";
 import ZoneEdit from "./pages/ZoneEdit";
 import Workers from "./pages/Workers";
+import WorkerDetail from "./pages/WorkerDetail";
 import Payments from "./pages/Payments";
 import AppShell from "./components/AppShell";
 
@@ -69,6 +70,14 @@ export default function App() {
           element={
             <RequireAuth owner>
               <Workers />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="workers/:id"
+          element={
+            <RequireAuth owner>
+              <WorkerDetail />
             </RequireAuth>
           }
         />

@@ -68,6 +68,64 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     } else if (segments.length === 1) {
       const id = segments[0];
       await methodRouter(req, res, {
+        GET: async () => {
+          await requireOwner(req);
+          const worker = await prisma.user.findFirst({
+            where: { id, role: "WORKER" },
+            include: {
+              workerProfile: true,
+              assignedJobs: {
+                include: {
+                  zone: { select: { id: true, name: true } },
+                  payment: true,
+                  timeEntries: {
+                    where: { endAt: { not: null } },
+                    select: { durationMinutes: true, startAt: true, endAt: true },
+                  },
+                },
+                orderBy: { updatedAt: "desc" },
+              },
+            },
+          });
+          assert(worker, 404, "Worker not found");
+
+          const activity = await prisma.activityLog.findMany({
+            where: { OR: [{ actorId: id }, { job: { assignedWorkerId: id } }] },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+            include: { job: { select: { id: true, title: true } } },
+          });
+
+          const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+          let weekMinutes = 0;
+          let unpaidOwed = 0;
+          let lifetimeEarned = 0;
+          for (const job of worker.assignedJobs) {
+            for (const te of job.timeEntries) {
+              if (te.endAt && te.endAt > since) {
+                weekMinutes += te.durationMinutes ?? 0;
+              }
+            }
+            if (job.payment) {
+              const amt = Number(job.payment.amount);
+              if (job.payment.paid) lifetimeEarned += amt;
+              else unpaidOwed += amt;
+            }
+          }
+
+          return res.status(200).json({
+            worker,
+            activity,
+            summary: {
+              weekHours: Math.round((weekMinutes / 60) * 100) / 100,
+              unpaidOwed,
+              lifetimeEarned,
+              activeJobs: worker.assignedJobs.filter(
+                (j) => !["PAID", "APPROVED"].includes(j.status),
+              ).length,
+            },
+          });
+        },
         PATCH: async () => {
           await requireOwner(req);
           const data = patchSchema.parse(parseBody(req));
