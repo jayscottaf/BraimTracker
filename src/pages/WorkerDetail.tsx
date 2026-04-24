@@ -107,90 +107,100 @@ export default function WorkerDetail() {
         </div>
       </div>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="This week" value={hours(summary.weekHours)} tone="slate" />
         <Stat label="Owed now" value={currency(summary.unpaidOwed)} tone="emerald" />
         <Stat label="Lifetime paid" value={currency(summary.lifetimeEarned)} tone="blue" />
         <Stat label="Active jobs" value={summary.activeJobs} tone="purple" />
       </section>
 
-      <Card>
-        <Field label="Hourly rate ($)">
-          <div className="flex gap-2">
-            <input
-              className={inputClass}
-              type="number"
-              step="0.5"
-              value={rateDraft}
-              onChange={(e) => setRateDraft(e.target.value)}
-            />
-            <Button
-              size="md"
-              onClick={saveRate}
-              disabled={rateBusy || rateDraft === String(worker.workerProfile?.hourlyRate ?? "")}
-            >
-              {rateBusy ? <Spinner /> : "Save"}
-            </Button>
-          </div>
-        </Field>
-        <p className="mt-1 text-xs text-slate-400">
-          Snapshot rate is used when the worker is assigned to a new hourly job.
-        </p>
-      </Card>
-
-      <section>
-        <h2 className="mb-2 text-sm font-semibold text-slate-600">Active jobs</h2>
-        {activeJobs.length === 0 ? (
-          <EmptyState title="No active jobs" description="Jobs assigned to this worker will show up here." />
-        ) : (
-          <div className="space-y-2">
-            {activeJobs.map((j) => (
-              <JobCard key={j.id} job={j} />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {activity.length > 0 && (
-        <section>
-          <h2 className="mb-2 text-sm font-semibold text-slate-600">Recent activity</h2>
-          <Card className="divide-y divide-slate-100 p-0">
-            {activity.map((a) => (
-              <div key={a.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                <div className="min-w-0">
-                  <span className="font-medium text-slate-700">{actionLabel(a.action)}</span>
-                  {a.job && (
-                    <>
-                      {" "}
-                      <Link to={`/jobs/${a.job.id}`} className="text-brand-700">
-                        {a.job.title}
-                      </Link>
-                    </>
-                  )}
-                </div>
-                <span className="shrink-0 text-xs text-slate-400">{relativeTime(a.createdAt)}</span>
+      {/* Body — single column on mobile, 2/3 + 1/3 on lg+. Mobile DOM
+          order is preserved (Rate, Active jobs, Activity, Status). */}
+      <div className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0 lg:items-start">
+        {/* LEFT COLUMN: rate + active jobs */}
+        <div className="space-y-4 lg:col-span-2">
+          <Card>
+            <Field label="Hourly rate ($)">
+              <div className="flex gap-2">
+                <input
+                  className={inputClass}
+                  type="number"
+                  step="0.5"
+                  value={rateDraft}
+                  onChange={(e) => setRateDraft(e.target.value)}
+                />
+                <Button
+                  size="md"
+                  onClick={saveRate}
+                  disabled={rateBusy || rateDraft === String(worker.workerProfile?.hourlyRate ?? "")}
+                >
+                  {rateBusy ? <Spinner /> : "Save"}
+                </Button>
               </div>
-            ))}
+            </Field>
+            <p className="mt-1 text-xs text-slate-400">
+              Snapshot rate is used when the worker is assigned to a new hourly job.
+            </p>
           </Card>
-        </section>
-      )}
 
-      <section className="space-y-2 border-t border-slate-200 pt-4">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          Status
+          <section>
+            <h2 className="mb-2 text-sm font-semibold text-slate-600">Active jobs</h2>
+            {activeJobs.length === 0 ? (
+              <EmptyState title="No active jobs" description="Jobs assigned to this worker will show up here." />
+            ) : (
+              <div className="space-y-2">
+                {activeJobs.map((j) => (
+                  <JobCard key={j.id} job={j} />
+                ))}
+              </div>
+            )}
+          </section>
         </div>
-        <Button variant="secondary" block onClick={toggleActive}>
-          {active ? "Pause worker" : "Reactivate worker"}
-        </Button>
-        <p className="text-xs text-slate-400">
-          {active
-            ? "Paused workers can still log in but won't appear in the worker picker on new jobs."
-            : "Reactivate to include this worker in the picker when creating new jobs."}
-        </p>
-        <Button variant="ghost" block onClick={remove}>
-          <span className="text-rose-600">Delete worker</span>
-        </Button>
-      </section>
+
+        {/* RIGHT COLUMN: activity + status rail */}
+        <div className="space-y-4 lg:col-span-1">
+          {activity.length > 0 && (
+            <section>
+              <h2 className="mb-2 text-sm font-semibold text-slate-600">Recent activity</h2>
+              <Card className="divide-y divide-slate-100 p-0">
+                {activity.map((a) => (
+                  <div key={a.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                    <div className="min-w-0">
+                      <span className="font-medium text-slate-700">{actionLabel(a.action)}</span>
+                      {a.job && (
+                        <>
+                          {" "}
+                          <Link to={`/jobs/${a.job.id}`} className="text-brand-700">
+                            {a.job.title}
+                          </Link>
+                        </>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-xs text-slate-400">{relativeTime(a.createdAt)}</span>
+                  </div>
+                ))}
+              </Card>
+            </section>
+          )}
+
+          <section className="space-y-2 border-t border-slate-200 pt-4 lg:border-0 lg:pt-0">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Status
+            </div>
+            <Button variant="secondary" block onClick={toggleActive}>
+              {active ? "Pause worker" : "Reactivate worker"}
+            </Button>
+            <p className="text-xs text-slate-400">
+              {active
+                ? "Paused workers can still log in but won't appear in the worker picker on new jobs."
+                : "Reactivate to include this worker in the picker when creating new jobs."}
+            </p>
+            <Button variant="ghost" block onClick={remove}>
+              <span className="text-rose-600">Delete worker</span>
+            </Button>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

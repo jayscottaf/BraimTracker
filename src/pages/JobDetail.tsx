@@ -116,6 +116,7 @@ export default function JobDetail() {
 
   return (
     <div className="space-y-4">
+      {/* Header — full width */}
       <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-bold">{job.title}</h1>
@@ -137,170 +138,181 @@ export default function JobDetail() {
         </Card>
       )}
 
-      <Card>
-        <div className="text-sm font-semibold text-slate-700">Pay</div>
-        <div className="mt-1 text-sm">{priceLine(job)}</div>
-        {job.estimatedHours && (
-          <div className="text-xs text-slate-500">Estimated {hours(job.estimatedHours)}</div>
-        )}
-      </Card>
+      {/* Body — single column on mobile, 2/3 + 1/3 on lg+. The DOM order is
+          preserved as-is on mobile (left column streams in first, then right);
+          on desktop they sit side by side. */}
+      <div className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0 lg:items-start">
+        {/* LEFT COLUMN: content (2/3) */}
+        <div className="space-y-4 lg:col-span-2">
+          <Card>
+            <div className="text-sm font-semibold text-slate-700">Pay</div>
+            <div className="mt-1 text-sm">{priceLine(job)}</div>
+            {job.estimatedHours && (
+              <div className="text-xs text-slate-500">Estimated {hours(job.estimatedHours)}</div>
+            )}
+          </Card>
 
-      {job.instructions && (
-        <Card>
-          <div className="text-sm font-semibold text-slate-700">Instructions</div>
-          <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{job.instructions}</p>
-        </Card>
-      )}
+          {job.instructions && (
+            <Card>
+              <div className="text-sm font-semibold text-slate-700">Instructions</div>
+              <p className="mt-1 whitespace-pre-wrap text-sm text-slate-700">{job.instructions}</p>
+            </Card>
+          )}
 
-      <Section
-        title="Instruction photos"
-        action={
-          isOwner && (
-            <PhotoUploader jobId={id} type="INSTRUCTION" label="Add" onUploaded={load} />
-          )
-        }
-      >
-        <PhotoGrid
-          photos={job.photos ?? []}
-          type="INSTRUCTION"
-          canDelete={isOwner}
-          onDeleted={load}
-        />
-      </Section>
-
-      {job.tasks && job.tasks.length > 0 && (
-        <Card>
-          <div className="mb-2 text-sm font-semibold text-slate-700">Checklist</div>
-          <ul className="space-y-2">
-            {job.tasks.map((t) => (
-              <li key={t.id}>
-                <label className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={t.done}
-                    onChange={(e) => toggleTask(t.id, e.target.checked)}
-                    className="h-5 w-5 rounded"
-                    disabled={!isOwner && !isAssignedWorker}
-                  />
-                  <span className={t.done ? "text-slate-400 line-through" : "text-sm"}>
-                    {t.label}
-                  </span>
-                </label>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      {isOwner && (
-        <Card>
-          <div className="mb-2 text-sm font-semibold text-slate-700">Assign worker</div>
-          <select
-            className={inputClass}
-            value={job.assignedWorkerId ?? ""}
-            onChange={(e) => void assign(e.target.value)}
+          <Section
+            title="Instruction photos"
+            action={
+              isOwner && (
+                <PhotoUploader jobId={id} type="INSTRUCTION" label="Add" onUploaded={load} />
+              )
+            }
           >
-            <option value="">— unassigned —</option>
-            {workers.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-        </Card>
-      )}
+            <PhotoGrid
+              photos={job.photos ?? []}
+              type="INSTRUCTION"
+              canDelete={isOwner}
+              onDeleted={load}
+            />
+          </Section>
 
-      <Section
-        title="Before"
-        action={
-          isAssignedWorker && (
-            <PhotoUploader jobId={id} type="BEFORE" label="Before" onUploaded={load} />
-          )
-        }
-      >
-        <PhotoGrid photos={job.photos ?? []} type="BEFORE" canDelete={isOwner} onDeleted={load} />
-      </Section>
-
-      <Section
-        title="After"
-        action={
-          isAssignedWorker && (
-            <PhotoUploader jobId={id} type="AFTER" label="After" onUploaded={load} />
-          )
-        }
-      >
-        <PhotoGrid photos={job.photos ?? []} type="AFTER" canDelete={isOwner} onDeleted={load} />
-      </Section>
-
-      {(isAssignedWorker || isOwner) && (
-        <Card>
-          <div className="mb-3 text-sm font-semibold text-slate-700">Time</div>
-          <div className="mb-3 text-xs text-slate-500">
-            Logged: {hours(job.actualHours ?? 0)}
-          </div>
-          {isAssignedWorker && (canStart || canStop) && (
-            <TimerButton jobId={id} openSince={openTimer?.startAt ?? null} onChanged={load} />
+          {job.tasks && job.tasks.length > 0 && (
+            <Card>
+              <div className="mb-2 text-sm font-semibold text-slate-700">Checklist</div>
+              <ul className="space-y-2">
+                {job.tasks.map((t) => (
+                  <li key={t.id}>
+                    <label className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={t.done}
+                        onChange={(e) => toggleTask(t.id, e.target.checked)}
+                        className="h-5 w-5 rounded"
+                        disabled={!isOwner && !isAssignedWorker}
+                      />
+                      <span className={t.done ? "text-slate-400 line-through" : "text-sm"}>
+                        {t.label}
+                      </span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
-          <div className="mt-3">
-            <Button size="sm" variant="ghost" onClick={addManualTime}>
-              + Add time manually
-            </Button>
-          </div>
-          {job.timeEntries && job.timeEntries.length > 0 && (
-            <ul className="mt-3 divide-y divide-slate-100 text-xs text-slate-600">
-              {job.timeEntries.map((t) => (
-                <li key={t.id} className="flex justify-between py-1.5">
-                  <span>{new Date(t.startAt).toLocaleString()}</span>
-                  <span>
-                    {t.endAt
-                      ? formatDuration(t.durationMinutes ?? 0)
-                      : "running…"}
-                    {t.manualEntry && " (manual)"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
-      )}
 
-      {isAssignedWorker && canSubmit && (
-        <Button size="lg" block onClick={submitJob}>
-          ✓ Submit for review
-        </Button>
-      )}
-      {isAssignedWorker && !hasAfter && job.status === "IN_PROGRESS" && (
-        <div className="text-center text-xs text-slate-500">
-          Upload an AFTER photo to submit.
+          {isOwner && (
+            <Card>
+              <div className="mb-2 text-sm font-semibold text-slate-700">Assign worker</div>
+              <select
+                className={inputClass}
+                value={job.assignedWorkerId ?? ""}
+                onChange={(e) => void assign(e.target.value)}
+              >
+                <option value="">— unassigned —</option>
+                {workers.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </Card>
+          )}
+
+          <Section
+            title="Before"
+            action={
+              isAssignedWorker && (
+                <PhotoUploader jobId={id} type="BEFORE" label="Before" onUploaded={load} />
+              )
+            }
+          >
+            <PhotoGrid photos={job.photos ?? []} type="BEFORE" canDelete={isOwner} onDeleted={load} />
+          </Section>
+
+          <Section
+            title="After"
+            action={
+              isAssignedWorker && (
+                <PhotoUploader jobId={id} type="AFTER" label="After" onUploaded={load} />
+              )
+            }
+          >
+            <PhotoGrid photos={job.photos ?? []} type="AFTER" canDelete={isOwner} onDeleted={load} />
+          </Section>
         </div>
-      )}
 
-      {isOwner && job.status === "AWAITING_REVIEW" && (
-        <ApproveBar job={job} onApprove={approve} onReject={reject} />
-      )}
+        {/* RIGHT COLUMN: time, action, activity (1/3) */}
+        <div className="space-y-4 lg:col-span-1">
+          {(isAssignedWorker || isOwner) && (
+            <Card>
+              <div className="mb-3 text-sm font-semibold text-slate-700">Time</div>
+              <div className="mb-3 text-xs text-slate-500">
+                Logged: {hours(job.actualHours ?? 0)}
+              </div>
+              {isAssignedWorker && (canStart || canStop) && (
+                <TimerButton jobId={id} openSince={openTimer?.startAt ?? null} onChanged={load} />
+              )}
+              <div className="mt-3">
+                <Button size="sm" variant="ghost" onClick={addManualTime}>
+                  + Add time manually
+                </Button>
+              </div>
+              {job.timeEntries && job.timeEntries.length > 0 && (
+                <ul className="mt-3 divide-y divide-slate-100 text-xs text-slate-600">
+                  {job.timeEntries.map((t) => (
+                    <li key={t.id} className="flex justify-between py-1.5">
+                      <span>{new Date(t.startAt).toLocaleString()}</span>
+                      <span>
+                        {t.endAt
+                          ? formatDuration(t.durationMinutes ?? 0)
+                          : "running…"}
+                        {t.manualEntry && " (manual)"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Card>
+          )}
 
-      {isOwner && job.status === "APPROVED" && job.payment && !job.payment.paid && (
-        <Button size="lg" block onClick={markPaid}>
-          💵 Mark paid · {currency(job.payment.amount)}
-        </Button>
-      )}
+          {isAssignedWorker && canSubmit && (
+            <Button size="lg" block onClick={submitJob}>
+              ✓ Submit for review
+            </Button>
+          )}
+          {isAssignedWorker && !hasAfter && job.status === "IN_PROGRESS" && (
+            <div className="text-center text-xs text-slate-500">
+              Upload an AFTER photo to submit.
+            </div>
+          )}
 
-      {job.activity && job.activity.length > 0 && (
-        <Card>
-          <div className="mb-2 text-sm font-semibold text-slate-700">Activity</div>
-          <ul className="space-y-1.5 text-xs text-slate-600">
-            {job.activity.map((a) => (
-              <li key={a.id} className="flex justify-between gap-2">
-                <span>
-                  <span className="font-medium text-slate-800">{a.actor?.name ?? "—"}</span>{" "}
-                  {a.action.toLowerCase().replace(/_/g, " ")}
-                </span>
-                <span className="text-slate-400">{relativeTime(a.createdAt)}</span>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
+          {isOwner && job.status === "AWAITING_REVIEW" && (
+            <ApproveBar job={job} onApprove={approve} onReject={reject} />
+          )}
+
+          {isOwner && job.status === "APPROVED" && job.payment && !job.payment.paid && (
+            <Button size="lg" block onClick={markPaid}>
+              💵 Mark paid · {currency(job.payment.amount)}
+            </Button>
+          )}
+
+          {job.activity && job.activity.length > 0 && (
+            <Card>
+              <div className="mb-2 text-sm font-semibold text-slate-700">Activity</div>
+              <ul className="space-y-1.5 text-xs text-slate-600">
+                {job.activity.map((a) => (
+                  <li key={a.id} className="flex justify-between gap-2">
+                    <span>
+                      <span className="font-medium text-slate-800">{a.actor?.name ?? "—"}</span>{" "}
+                      {a.action.toLowerCase().replace(/_/g, " ")}
+                    </span>
+                    <span className="text-slate-400">{relativeTime(a.createdAt)}</span>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          )}
+        </div>
+      </div>
 
       {isOwner && (
         <div className="pt-4 text-right">

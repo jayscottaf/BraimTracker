@@ -63,13 +63,15 @@ export default function Dashboard() {
             See all →
           </Link>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           {data.recentJobs.length === 0 ? (
-            <EmptyState
-              title="No jobs yet"
-              description={isOwner ? "Create your first job to get started." : "You don't have any assigned jobs."}
-              action={isOwner ? <Link to="/jobs/new"><Button>+ Create job</Button></Link> : undefined}
-            />
+            <div className="lg:col-span-2">
+              <EmptyState
+                title="No jobs yet"
+                description={isOwner ? "Create your first job to get started." : "You don't have any assigned jobs."}
+                action={isOwner ? <Link to="/jobs/new"><Button>+ Create job</Button></Link> : undefined}
+              />
+            </div>
           ) : (
             data.recentJobs.map((j) => <JobCard key={j.id} job={j} />)
           )}
