@@ -25,7 +25,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const tail = urlPath.replace(/^\/api\/photos\/?/, "").replace(/\/$/, "");
   const segments = tail ? tail.split("/") : [];
   try {
-    if (segments.length === 1 && segments[0] === "upload") {
+    if (segments.length === 1 && segments[0] === "record") {
+      await methodRouter(req, res, {
+        POST: async () => {
+          const user = await requireAuth(req);
+          const body = parseBody<{
+            jobId?: string;
+            type?: string;
+            url?: string;
+            pathname?: string;
+          }>(req);
+
+          const jobId = String(body.jobId ?? "");
+          const photoType = String(body.type ?? "");
+          const url = String(body.url ?? "");
+          const pathname = String(body.pathname ?? "");
+
+          if (!jobId || !["INSTRUCTION", "BEFORE", "AFTER"].includes(photoType)) {
+            throw new HttpError(400, "Invalid photo metadata");
+          }
+          if (!url || !pathname) {
+            throw new HttpError(400, "Missing url or pathname");
+          }
+          // Only accept blob URLs that look like our Vercel Blob store.
+          if (!/^https:\/\/[^/]+\.public\.blob\.vercel-storage\.com\//.test(url)) {
+            throw new HttpError(400, "Not a Vercel Blob URL");
+          }
+
+          const job = await prisma.job.findUnique({ where: { id: jobId } });
+          if (!job) throw new HttpError(404, "Job not found");
+
+          if (user.role === "WORKER") {
+            if (job.assignedWorkerId !== user.id) throw new HttpError(403, "Not your job");
+            if (photoType === "INSTRUCTION") {
+              throw new HttpError(403, "Workers cannot upload instruction photos");
+            }
+          }
+
+          const photo = await prisma.jobPhoto.create({
+            data: {
+              jobId,
+              type: photoType as "INSTRUCTION" | "BEFORE" | "AFTER",
+              url,
+              pathname,
+              uploadedById: user.id,
+            },
+          });
+          await prisma.activityLog.create({
+            data: {
+              jobId,
+              actorId: user.id,
+              action: "PHOTO_UPLOADED",
+              meta: { type: photoType, url },
+            },
+          });
+
+          return res.status(201).json({ photo });
+        },
+      });
+    } else if (segments.length === 1 && segments[0] === "upload") {
       await methodRouter(req, res, {
         POST: async () => {
           // Fail fast and loud if the Blob integration isn't wired up.
@@ -90,25 +148,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   addRandomSuffix: true,
                 };
               },
-              onUploadCompleted: async ({ blob, tokenPayload }) => {
-                const { jobId, photoType, uploadedById } = JSON.parse(tokenPayload ?? "{}");
-                await prisma.jobPhoto.create({
-                  data: {
-                    jobId,
-                    type: photoType,
-                    url: blob.url,
-                    pathname: blob.pathname,
-                    uploadedById,
-                  },
-                });
-                await prisma.activityLog.create({
-                  data: {
-                    jobId,
-                    actorId: uploadedById,
-                    action: "PHOTO_UPLOADED",
-                    meta: { type: photoType, url: blob.url },
-                  },
-                });
+              onUploadCompleted: async () => {
+                // No-op. The client calls POST /api/photos/record directly
+                // after upload() resolves so the JobPhoto row is created
+                // synchronously — the webhook would otherwise land after
+                // the client has already refreshed and the photo would
+                // silently not appear until the next page load.
               },
             });
           } catch (uploadErr) {

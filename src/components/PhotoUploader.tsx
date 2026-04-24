@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { Button, Spinner } from "./ui";
 import type { PhotoType } from "../types";
-import { getToken } from "../lib/api";
+import { getToken, post } from "../lib/api";
 
 interface Props {
   jobId: string;
@@ -45,10 +45,26 @@ export default function PhotoUploader({ jobId, type, label, disabled, onUploaded
     setBusy(true);
     try {
       const resized = await downscale(file);
-      await upload(`jobs/${jobId}/${type}/${Date.now()}-${resized.name}`, resized, {
-        access: "public",
-        handleUploadUrl: "/api/photos/upload",
-        clientPayload: JSON.stringify({ jobId, type, token: getToken() ?? "" }),
+      const result = await upload(
+        `jobs/${jobId}/${type}/${Date.now()}-${resized.name}`,
+        resized,
+        {
+          access: "public",
+          handleUploadUrl: "/api/photos/upload",
+          clientPayload: JSON.stringify({ jobId, type, token: getToken() ?? "" }),
+        },
+      );
+      // Confirm synchronously so the JobPhoto row is in the DB before we
+      // refresh the parent. @vercel/blob's onUploadCompleted webhook is a
+      // separate async call from Blob back to our server, which lands
+      // unpredictably later — if we refresh the page first, the photo
+      // doesn't appear until the next navigation. Recording here makes it
+      // appear immediately.
+      await post("/api/photos/record", {
+        jobId,
+        type,
+        url: result.url,
+        pathname: result.pathname,
       });
       onUploaded();
     } catch (e: unknown) {
