@@ -52,7 +52,15 @@ export default function PhotoUploader({ jobId, type, label, disabled, onUploaded
       });
       onUploaded();
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      const raw = e instanceof Error ? e.message : "Upload failed";
+      // The @vercel/blob/client library returns this generic message
+      // whenever /api/photos/upload doesn't respond with a valid token,
+      // which almost always means BLOB_READ_WRITE_TOKEN is missing from
+      // the Vercel project's environment variables.
+      const msg = /failed to retrieve the client token/i.test(raw)
+        ? "Photo upload isn't configured. The owner needs to connect Vercel Blob storage to the project (adds BLOB_READ_WRITE_TOKEN)."
+        : raw;
+      setError(msg);
     } finally {
       setBusy(false);
       if (inputRef.current) inputRef.current.value = "";

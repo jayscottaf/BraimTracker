@@ -18,6 +18,18 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent iOS Safari from auto-zooming into form fields (happens when
+   any interactive element has font-size < 16px on focus, and the zoom
+   sometimes sticks after blur — shows up as the whole page "floating"
+   until the user pinches out). Desktop layouts are unaffected. */
+@media (max-width: 767px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 @layer utilities {
   .px-safe {
     padding-left: max(1rem, env(safe-area-inset-left, 0px));
