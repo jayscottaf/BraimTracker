@@ -36,6 +36,11 @@ export default function WorkerDetail() {
     if (!id) return;
     try {
       const d = await get<Detail>(`/api/workers/${id}`);
+      if (!d || !d.worker) {
+        console.error("Worker detail response missing `worker` field:", d);
+        setErr("Worker data didn't load. Try pulling down to refresh.");
+        return;
+      }
       setData(d);
       setRateDraft(String(d.worker.workerProfile?.hourlyRate ?? ""));
     } catch (e) {
@@ -49,11 +54,11 @@ export default function WorkerDetail() {
   }, [id]);
 
   if (err) return <div className="text-sm text-rose-700">{err}</div>;
-  if (!data) return <div className="py-8 text-center text-slate-400">Loading…</div>;
+  if (!data || !data.worker) return <div className="py-8 text-center text-slate-400">Loading…</div>;
 
   const { worker, activity, summary } = data;
   const active = worker.workerProfile?.active !== false;
-  const activeJobs = worker.assignedJobs.filter((j) => j.status !== "PAID");
+  const activeJobs = (worker.assignedJobs ?? []).filter((j) => j.status !== "PAID");
 
   async function saveRate() {
     const rate = Number(rateDraft);
