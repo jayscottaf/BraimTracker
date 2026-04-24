@@ -9,7 +9,6 @@ export type JobStatus =
   | "PAID";
 
 export type Priority = "LOW" | "NORMAL" | "HIGH" | "URGENT";
-export type TaskType = "MULCH" | "EDGING" | "CLEANUP" | "TRIMMING" | "PRUNING" | "OTHER";
 export type PhotoType = "INSTRUCTION" | "BEFORE" | "AFTER";
 export type PriceMode = "HOURLY" | "FLAT";
 
@@ -112,7 +111,7 @@ export interface Job {
   description: string | null;
   zoneId: string;
   zone?: Zone;
-  taskType: TaskType;
+  taskType: string;
   instructions: string | null;
   priority: Priority;
   status: JobStatus;

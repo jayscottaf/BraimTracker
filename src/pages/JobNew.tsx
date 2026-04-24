@@ -2,10 +2,23 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { get, post } from "../lib/api";
 import { Button, Card, Field, inputClass, Spinner } from "../components/ui";
-import type { Zone, Worker, TaskType, Priority, PriceMode } from "../types";
+import type { Zone, Worker, Priority, PriceMode } from "../types";
 
-const TASK_TYPES: TaskType[] = ["MULCH", "EDGING", "CLEANUP", "TRIMMING", "PRUNING", "OTHER"];
+const TASK_TYPE_SUGGESTIONS = [
+  "Mulch",
+  "Edging",
+  "Cleanup",
+  "Trimming",
+  "Pruning",
+  "Weeding",
+  "Planting",
+  "Leaf removal",
+  "Power washing",
+  "Other",
+];
 const PRIORITIES: Priority[] = ["LOW", "NORMAL", "HIGH", "URGENT"];
+
+const NEW_ZONE_SENTINEL = "__new_zone__";
 
 export default function JobNew() {
   const nav = useNavigate();
@@ -14,9 +27,16 @@ export default function JobNew() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // inline-new-zone state
+  const [creatingZone, setCreatingZone] = useState(false);
+  const [newZoneName, setNewZoneName] = useState("");
+  const [newZonePriority, setNewZonePriority] = useState<Priority>("NORMAL");
+  const [newZoneBusy, setNewZoneBusy] = useState(false);
+  const [newZoneError, setNewZoneError] = useState<string | null>(null);
+
   const [title, setTitle] = useState("");
   const [zoneId, setZoneId] = useState("");
-  const [taskType, setTaskType] = useState<TaskType>("CLEANUP");
+  const [taskType, setTaskType] = useState<string>("Cleanup");
   const [priority, setPriority] = useState<Priority>("NORMAL");
   const [workerId, setWorkerId] = useState<string>("");
   const [instructions, setInstructions] = useState("");
@@ -96,7 +116,15 @@ export default function JobNew() {
               <select
                 className={inputClass}
                 value={zoneId}
-                onChange={(e) => setZoneId(e.target.value)}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === NEW_ZONE_SENTINEL) {
+                    setCreatingZone(true);
+                    setNewZoneError(null);
+                  } else {
+                    setZoneId(v);
+                  }
+                }}
                 required
               >
                 {zones.map((z) => (
@@ -104,20 +132,101 @@ export default function JobNew() {
                     {z.name}
                   </option>
                 ))}
+                <option value={NEW_ZONE_SENTINEL}>+ New zone…</option>
               </select>
             </Field>
-            <Field label="Type">
-              <select
+            <Field label="Type" hint="Pick or type your own">
+              <input
                 className={inputClass}
+                list="task-type-suggestions"
                 value={taskType}
-                onChange={(e) => setTaskType(e.target.value as TaskType)}
-              >
-                {TASK_TYPES.map((t) => (
-                  <option key={t}>{t}</option>
+                onChange={(e) => setTaskType(e.target.value)}
+                placeholder="e.g. Mulch, Edging, Weeding…"
+                maxLength={40}
+              />
+              <datalist id="task-type-suggestions">
+                {TASK_TYPE_SUGGESTIONS.map((t) => (
+                  <option key={t} value={t} />
                 ))}
-              </select>
+              </datalist>
             </Field>
           </div>
+
+          {creatingZone && (
+            <div className="rounded-xl border border-brand-200 bg-brand-50/60 p-3 space-y-3">
+              <div className="text-sm font-semibold text-slate-700">New zone</div>
+              <Field label="Zone name" required>
+                <input
+                  className={inputClass}
+                  value={newZoneName}
+                  onChange={(e) => setNewZoneName(e.target.value)}
+                  placeholder="Back terrace"
+                  autoFocus
+                />
+              </Field>
+              <Field label="Priority">
+                <div className="flex gap-2">
+                  {PRIORITIES.map((p) => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setNewZonePriority(p)}
+                      className={`flex-1 rounded-lg border px-2 py-1.5 text-xs ${
+                        newZonePriority === p
+                          ? "border-brand-600 bg-white text-brand-700"
+                          : "border-slate-300 text-slate-600"
+                      }`}
+                    >
+                      {p.toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {newZoneError && (
+                <div className="text-xs text-rose-700">{newZoneError}</div>
+              )}
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={newZoneBusy || !newZoneName.trim()}
+                  onClick={async () => {
+                    setNewZoneError(null);
+                    setNewZoneBusy(true);
+                    try {
+                      const { zone } = await post<{ zone: Zone }>("/api/zones", {
+                        name: newZoneName.trim(),
+                        priority: newZonePriority,
+                      });
+                      setZones((prev) => [...prev, zone]);
+                      setZoneId(zone.id);
+                      setNewZoneName("");
+                      setNewZonePriority("NORMAL");
+                      setCreatingZone(false);
+                    } catch (err) {
+                      setNewZoneError(err instanceof Error ? err.message : "Failed to create zone");
+                    } finally {
+                      setNewZoneBusy(false);
+                    }
+                  }}
+                >
+                  {newZoneBusy ? <Spinner /> : "Create zone"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => {
+                    setCreatingZone(false);
+                    setNewZoneName("");
+                    setNewZoneError(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
 
           <Field label="Assign worker">
             <select

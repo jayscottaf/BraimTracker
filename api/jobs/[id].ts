@@ -9,7 +9,7 @@ const patchSchema = z.object({
   title: z.string().min(1).max(120).optional(),
   description: z.string().max(2000).nullable().optional(),
   zoneId: z.string().optional(),
-  taskType: z.enum(["MULCH", "EDGING", "CLEANUP", "TRIMMING", "PRUNING", "OTHER"]).optional(),
+  taskType: z.string().min(1).max(40).optional(),
   instructions: z.string().max(4000).nullable().optional(),
   priority: z.enum(["LOW", "NORMAL", "HIGH", "URGENT"]).optional(),
   targetDate: z.string().datetime().nullable().optional(),

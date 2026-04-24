@@ -34,15 +34,6 @@ enum Priority {
   URGENT
 }
 
-enum TaskType {
-  MULCH
-  EDGING
-  CLEANUP
-  TRIMMING
-  PRUNING
-  OTHER
-}
-
 enum PhotoType {
   INSTRUCTION
   BEFORE
@@ -95,7 +86,7 @@ model Job {
   description      String?
   zoneId           String
   zone             Zone       @relation(fields: [zoneId], references: [id])
-  taskType         TaskType   @default(OTHER)
+  taskType         String     @default("Other")
   instructions     String?
   priority         Priority   @default(NORMAL)
   status           JobStatus  @default(DRAFT)

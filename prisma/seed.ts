@@ -1,4 +1,4 @@
-import { PrismaClient, Priority, JobStatus, TaskType, PriceMode } from "@prisma/client";
+import { PrismaClient, Priority, JobStatus, PriceMode } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -65,7 +65,7 @@ async function main() {
       title: "Edge and clean pool bed",
       zone: "Pool Area",
       worker: "Mike",
-      taskType: "EDGING" as TaskType,
+      taskType: "Edging",
       status: "ASSIGNED" as JobStatus,
       priority: "HIGH" as Priority,
       priceMode: "HOURLY" as PriceMode,
@@ -78,7 +78,7 @@ async function main() {
       title: "Spread mulch in front beds",
       zone: "Front Beds",
       worker: null,
-      taskType: "MULCH" as TaskType,
+      taskType: "Mulch",
       status: "DRAFT" as JobStatus,
       priority: "NORMAL" as Priority,
       priceMode: "FLAT" as PriceMode,
@@ -91,7 +91,7 @@ async function main() {
       title: "Clear brush along side yard",
       zone: "Side Yard",
       worker: "Tom",
-      taskType: "CLEANUP" as TaskType,
+      taskType: "Cleanup",
       status: "IN_PROGRESS" as JobStatus,
       priority: "NORMAL" as Priority,
       priceMode: "HOURLY" as PriceMode,
