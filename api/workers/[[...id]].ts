@@ -20,10 +20,13 @@ const patchSchema = z.object({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const raw = req.query.id;
-  const rawSegments = Array.isArray(raw) ? raw : raw ? [String(raw)] : [];
-  // vercel.json rewrites /api/workers -> /api/workers/_root so the
-  // catch-all function matches; strip the sentinel back out here.
+  // Parse segments from req.url directly — req.query.id proved unreliable
+  // because the vercel.json rewrite /api/workers -> /api/workers/_root was
+  // observed applying to sub-paths too, so req.query.id could be "_root"
+  // even on /api/workers/:id requests.
+  const urlPath = (req.url || "").split("?")[0];
+  const tail = urlPath.replace(/^\/api\/workers\/?/, "").replace(/\/$/, "");
+  const rawSegments = tail ? tail.split("/") : [];
   const segments = rawSegments[0] === "_root" ? rawSegments.slice(1) : rawSegments;
   try {
     if (segments.length === 0) {

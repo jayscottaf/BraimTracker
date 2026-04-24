@@ -12,10 +12,10 @@ const markPaidSchema = z.object({
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  const raw = req.query.path;
-  const rawSegments = Array.isArray(raw) ? raw : raw ? [String(raw)] : [];
-  // vercel.json rewrites /api/payments -> /api/payments/_root so the
-  // catch-all function matches; strip the sentinel back out here.
+  // Parse segments from req.url directly — see workers/[[...id]].ts
+  const urlPath = (req.url || "").split("?")[0];
+  const tail = urlPath.replace(/^\/api\/payments\/?/, "").replace(/\/$/, "");
+  const rawSegments = tail ? tail.split("/") : [];
   const segments = rawSegments[0] === "_root" ? rawSegments.slice(1) : rawSegments;
   try {
     if (segments.length === 0) {
