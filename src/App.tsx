@@ -11,6 +11,7 @@ import Workers from "./pages/Workers";
 import WorkerDetail from "./pages/WorkerDetail";
 import Payments from "./pages/Payments";
 import AppShell from "./components/AppShell";
+import UpdateBanner from "./components/UpdateBanner";
 
 function RequireAuth({ children, owner }: { children: JSX.Element; owner?: boolean }) {
   const { user, loading } = useAuth();
@@ -27,70 +28,73 @@ function RequireAuth({ children, owner }: { children: JSX.Element; owner?: boole
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <AppShell />
-          </RequireAuth>
-        }
-      >
-        <Route index element={<Navigate to="/dashboard" replace />} />
-        <Route path="dashboard" element={<Dashboard />} />
-        <Route path="jobs" element={<JobsList />} />
+    <>
+      <UpdateBanner />
+      <Routes>
+        <Route path="/login" element={<Login />} />
         <Route
-          path="jobs/new"
+          path="/"
           element={
-            <RequireAuth owner>
-              <JobNew />
+            <RequireAuth>
+              <AppShell />
             </RequireAuth>
           }
-        />
-        <Route path="jobs/:id" element={<JobDetail />} />
-        <Route
-          path="zones"
-          element={
-            <RequireAuth owner>
-              <ZonesList />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="zones/:id"
-          element={
-            <RequireAuth owner>
-              <ZoneEdit />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="workers"
-          element={
-            <RequireAuth owner>
-              <Workers />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="workers/:id"
-          element={
-            <RequireAuth owner>
-              <WorkerDetail />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="payments"
-          element={
-            <RequireAuth owner>
-              <Payments />
-            </RequireAuth>
-          }
-        />
-      </Route>
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
-    </Routes>
+        >
+          <Route index element={<Navigate to="/dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="jobs" element={<JobsList />} />
+          <Route
+            path="jobs/new"
+            element={
+              <RequireAuth owner>
+                <JobNew />
+              </RequireAuth>
+            }
+          />
+          <Route path="jobs/:id" element={<JobDetail />} />
+          <Route
+            path="zones"
+            element={
+              <RequireAuth owner>
+                <ZonesList />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="zones/:id"
+            element={
+              <RequireAuth owner>
+                <ZoneEdit />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="workers"
+            element={
+              <RequireAuth owner>
+                <Workers />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="workers/:id"
+            element={
+              <RequireAuth owner>
+                <WorkerDetail />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="payments"
+            element={
+              <RequireAuth owner>
+                <Payments />
+              </RequireAuth>
+            }
+          />
+        </Route>
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </>
   );
 }
