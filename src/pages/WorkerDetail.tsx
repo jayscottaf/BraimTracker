@@ -31,6 +31,8 @@ export default function WorkerDetail() {
 
   const [rateDraft, setRateDraft] = useState("");
   const [rateBusy, setRateBusy] = useState(false);
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [phoneBusy, setPhoneBusy] = useState(false);
 
   const refresh = async () => {
     if (!id) return;
@@ -43,6 +45,7 @@ export default function WorkerDetail() {
       }
       setData(d);
       setRateDraft(String(d.worker.workerProfile?.hourlyRate ?? ""));
+      setPhoneDraft(d.worker.workerProfile?.phone ?? "");
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Failed to load worker");
     }
@@ -71,6 +74,19 @@ export default function WorkerDetail() {
       setErr(e instanceof Error ? e.message : "Failed to update rate");
     } finally {
       setRateBusy(false);
+    }
+  }
+
+  async function savePhone() {
+    const trimmed = phoneDraft.trim();
+    setPhoneBusy(true);
+    try {
+      await patch(`/api/workers/${id}`, { phone: trimmed === "" ? null : trimmed });
+      await refresh();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Failed to update phone");
+    } finally {
+      setPhoneBusy(false);
     }
   }
 
@@ -117,8 +133,46 @@ export default function WorkerDetail() {
       {/* Body — single column on mobile, 2/3 + 1/3 on lg+. Mobile DOM
           order is preserved (Rate, Active jobs, Activity, Status). */}
       <div className="space-y-4 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0 lg:items-start">
-        {/* LEFT COLUMN: rate + active jobs */}
+        {/* LEFT COLUMN: contact + rate + active jobs */}
         <div className="space-y-4 lg:col-span-2">
+          <Card>
+            <Field label="Phone">
+              <div className="flex gap-2">
+                <input
+                  className={inputClass}
+                  type="tel"
+                  inputMode="tel"
+                  placeholder="(555) 123-4567"
+                  value={phoneDraft}
+                  onChange={(e) => setPhoneDraft(e.target.value)}
+                />
+                <Button
+                  size="md"
+                  onClick={savePhone}
+                  disabled={phoneBusy || phoneDraft.trim() === (worker.workerProfile?.phone ?? "")}
+                >
+                  {phoneBusy ? <Spinner /> : "Save"}
+                </Button>
+              </div>
+            </Field>
+            {worker.workerProfile?.phone && (
+              <div className="mt-2 flex gap-3 text-sm">
+                <a
+                  href={`tel:${worker.workerProfile.phone}`}
+                  className="text-brand-700 underline-offset-2 hover:underline"
+                >
+                  📞 Call
+                </a>
+                <a
+                  href={`sms:${worker.workerProfile.phone}`}
+                  className="text-brand-700 underline-offset-2 hover:underline"
+                >
+                  💬 Text
+                </a>
+              </div>
+            )}
+          </Card>
+
           <Card>
             <Field label="Hourly rate ($)">
               <div className="flex gap-2">

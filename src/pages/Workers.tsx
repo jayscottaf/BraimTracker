@@ -5,11 +5,18 @@ import { Button, Card, EmptyState, Field, inputClass } from "../components/ui";
 import { currency } from "../lib/format";
 import type { Worker } from "../types";
 
+function lastFourDigits(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.slice(-4);
+}
+
 export default function Workers() {
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
   const [loginCode, setLoginCode] = useState("");
+  const [codeManuallySet, setCodeManuallySet] = useState(false);
   const [hourlyRate, setHourlyRate] = useState("20");
   const [error, setError] = useState<string | null>(null);
 
@@ -19,17 +26,34 @@ export default function Workers() {
     void refresh();
   }, []);
 
+  function onPhoneChange(val: string) {
+    setPhone(val);
+    if (!codeManuallySet) {
+      const last4 = lastFourDigits(val);
+      if (last4.length === 4) setLoginCode(last4);
+    }
+  }
+
+  function onCodeChange(val: string) {
+    setCodeManuallySet(true);
+    setLoginCode(val.replace(/\D/g, ""));
+  }
+
   async function add(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     try {
+      const trimmedPhone = phone.trim();
       await post("/api/workers", {
         name: name.trim(),
         loginCode: loginCode.trim(),
         hourlyRate: Number(hourlyRate) || 20,
+        ...(trimmedPhone ? { phone: trimmedPhone } : {}),
       });
       setName("");
+      setPhone("");
       setLoginCode("");
+      setCodeManuallySet(false);
       setHourlyRate("20");
       setAdding(false);
       await refresh();
@@ -57,12 +81,22 @@ export default function Workers() {
                 required
               />
             </Field>
+            <Field label="Phone" hint="Login code defaults to the last 4 digits.">
+              <input
+                className={inputClass}
+                value={phone}
+                onChange={(e) => onPhoneChange(e.target.value)}
+                type="tel"
+                inputMode="tel"
+                placeholder="(555) 123-4567"
+              />
+            </Field>
             <div className="grid grid-cols-2 gap-3">
-              <Field label="4-digit code" required>
+              <Field label="Login code" required>
                 <input
                   className={inputClass}
                   value={loginCode}
-                  onChange={(e) => setLoginCode(e.target.value.replace(/\D/g, ""))}
+                  onChange={(e) => onCodeChange(e.target.value)}
                   inputMode="numeric"
                   maxLength={6}
                   required
