@@ -6,9 +6,9 @@
   "description": "Visual job tracking for managing yard work on a large residential property",
   "scripts": {
     "dev": "vite",
-    "build": "prisma generate && tsc -b && vite build",
+    "build": "prisma generate && tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json && vite build",
     "preview": "vite preview",
-    "lint": "tsc -b --noEmit",
+    "lint": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.node.json",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

@@ -285,9 +285,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               });
             }
 
+            const entries = await prisma.timeEntry.findMany({
+              where: { jobId: id, endAt: { not: null } },
+              select: { durationMinutes: true },
+            });
+            const actualHours = sumActualHoursFromEntries(entries);
+            const totalOwed = computeTotal({
+              priceMode: job.priceMode,
+              hourlyRate: job.hourlyRate,
+              flatRate: job.flatRate,
+              actualHours,
+            });
+
             const updated = await prisma.job.update({
               where: { id },
-              data: { status: "AWAITING_REVIEW" },
+              data: {
+                status: "AWAITING_REVIEW",
+                actualHours,
+                totalOwed: totalOwed ?? undefined,
+              },
             });
 
             await logActivity(id, user.id, "SUBMITTED");
@@ -300,7 +316,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       case "tasks":
         await methodRouter(req, res, {
           GET: async () => {
-            await requireAuth(req);
+            const user = await requireAuth(req);
+            const job = await prisma.job.findUnique({
+              where: { id },
+              select: { assignedWorkerId: true },
+            });
+            assert(job, 404, "Job not found");
+            if (user.role === "WORKER" && job.assignedWorkerId !== user.id) {
+              throw new HttpError(403, "Not your job");
+            }
             const tasks = await prisma.jobTask.findMany({
               where: { jobId: id },
               orderBy: { order: "asc" },
@@ -310,6 +334,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           POST: async () => {
             await requireOwner(req);
             const { labels } = tasksAddSchema.parse(parseBody(req));
+            const job = await prisma.job.findUnique({
+              where: { id },
+              select: { id: true },
+            });
+            assert(job, 404, "Job not found");
             const existing = await prisma.jobTask.count({ where: { jobId: id } });
             await prisma.jobTask.createMany({
               data: labels.map((label, i) => ({
@@ -332,20 +361,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (user.role === "WORKER" && job.assignedWorkerId !== user.id) {
               throw new HttpError(403, "Not your job");
             }
-            const task = await prisma.jobTask.update({
-              where: { id: taskId },
+            const updated = await prisma.jobTask.updateMany({
+              where: { id: taskId, jobId: id },
               data: {
                 done,
                 doneAt: done ? new Date() : null,
                 doneById: done ? user.id : null,
               },
             });
+            assert(updated.count === 1, 404, "Task not found");
+            const task = await prisma.jobTask.findFirst({
+              where: { id: taskId, jobId: id },
+            });
+            assert(task, 404, "Task not found");
             return res.status(200).json({ task });
           },
           DELETE: async () => {
             await requireOwner(req);
             const { taskId } = z.object({ taskId: z.string().min(1) }).parse(parseBody(req));
-            await prisma.jobTask.delete({ where: { id: taskId } });
+            const deleted = await prisma.jobTask.deleteMany({ where: { id: taskId, jobId: id } });
+            assert(deleted.count === 1, 404, "Task not found");
             return res.status(204).end();
           },
         });

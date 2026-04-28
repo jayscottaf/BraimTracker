@@ -44,7 +44,7 @@ npm install
 cp .env.example .env.local
 # Edit .env.local:
 #   DATABASE_URL  = Neon connection string (pooled)
-#   DIRECT_URL    = Neon direct connection
+#   DATABASE_URL_UNPOOLED = Neon direct connection
 #   JWT_SECRET    = any long random string
 #   OWNER_PASSWORD = your password
 
@@ -71,7 +71,7 @@ Open <http://localhost:3000>.
 5. Add these env vars manually in Project Settings → Environment Variables:
    - `JWT_SECRET` — any long random string
    - `OWNER_PASSWORD` — your owner login password
-6. Deploy. The build command (`npm run vercel-build`) runs `prisma migrate deploy` against Neon, so the schema gets created on first deploy.
+6. Deploy. The Vercel build command runs `prisma migrate deploy` against Neon, so the schema gets created on first deploy from the checked-in migrations.
 7. After the first deploy, run the seed once against production:
    ```bash
    vercel env pull .env.production.local

@@ -39,7 +39,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             select: { durationMinutes: true },
           }),
           prisma.payment.aggregate({
-            where: { paid: false },
+            where: {
+              paid: false,
+              ...(user.role === "WORKER" ? { job: { assignedWorkerId: user.id } } : {}),
+            },
             _sum: { amount: true },
           }),
           prisma.job.findMany({
